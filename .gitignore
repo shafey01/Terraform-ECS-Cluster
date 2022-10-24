@@ -1,8 +1,8 @@
 **/VPC/.terraform/*
 **/ECS/.terraform/*
 
-**/VPC/.terraform.lock.hcl
-**/ECS/.terraform.lock.hcl
+VPC/*.lock.hcl
+ECS/*.lock.hcl
 
 
 VPC/*.tfstate
