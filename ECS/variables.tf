@@ -1,0 +1,133 @@
+variable "cluster_name" {
+  description = "Cluster name."
+  default = "ECS-Cluster"
+}
+
+variable "trusted_cidr_blocks" {
+  description = "List of trusted subnets CIDRs with hosts that should connect to the cluster. E.g., subnets with ALB and bastion hosts."
+  type        = list(string)
+  default     = [""]
+}
+
+variable "instance_types" {
+  description = "ECS node instance types. Maps of pairs like `type = weight`. Where weight gives the instance type a proportional weight to other instance types."
+  type        = map(any)
+  default = {
+    "t2.small" = 2
+  }
+}
+
+variable "protect_from_scale_in" {
+  description = "The autoscaling group will not select instances with this setting for termination during scale in events."
+  default     = true
+}
+
+variable "asg_min_size" {
+  description = "The minimum size the auto scaling group (measured in EC2 instances)."
+  default     = 0
+}
+
+variable "asg_max_size" {
+  description = "The maximum size the auto scaling group (measured in EC2 instances)."
+  default     = 3
+}
+
+variable "spot" {
+  description = "Choose should we use spot instances or on-demand to populate ECS cluster."
+  type        = bool
+  default     = false
+}
+
+variable "security_group_ids" {
+  description = "Additional security group IDs. Default security group would be merged with the provided list."
+  default     = []
+}
+
+# variable "subnets_ids" {
+#   description = "IDs of subnets. Use subnets from various availability zones to make the cluster more reliable."
+#   type        = list(string)
+# }
+
+variable "target_capacity" {
+  description = "The target utilization for the cluster. A number between 1 and 100."
+  default     = "100"
+}
+
+variable "user_data" {
+  description = "A shell script will be executed at once at EC2 instance start."
+  default     = ""
+}
+
+variable "ebs_disks" {
+  description = "A list of additional EBS disks."
+  type        = map(string)
+  default     = {}
+}
+
+variable "on_demand_base_capacity" {
+  description = "The minimum number of on-demand EC2 instances."
+  default     = 0
+}
+
+variable "lifecycle_hooks" {
+  description = "A list of lifecycle hook actions. See details at https://docs.aws.amazon.com/autoscaling/ec2/userguide/lifecycle-hooks.html."
+  type = list(object({
+    name                    = string
+    lifecycle_transition    = string
+    default_result          = string
+    heartbeat_timeout       = number
+    role_arn                = string
+    notification_target_arn = string
+    notification_metadata   = string
+  }))
+  default = []
+}
+
+variable "arm64" {
+  description = "ECS node architecture. Default is `amd64`. You can change it to `arm64` by activating this flag. If you do, then you should use corresponding instance types."
+  type        = bool
+  default     = false
+}
+
+data "aws_subnet" "default" {
+  id = local.subnets_ids[0]
+}
+
+data "aws_ssm_parameter" "ecs_ami" {
+  name = "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id"
+}
+
+data "aws_ssm_parameter" "ecs_ami_arm64" {
+  name = "/aws/service/ecs/optimized-ami/amazon-linux-2/arm64/recommended/image_id"
+}
+
+
+
+
+
+
+locals {
+  ami_id                  = var.arm64 ? data.aws_ssm_parameter.ecs_ami_arm64.value : data.aws_ssm_parameter.ecs_ami.value
+  asg_max_size            = 2
+  asg_min_size            = 1
+  ebs_disks               = var.ebs_disks
+  instance_types          = {
+    "t2.small" = 1
+  }
+  lifecycle_hooks         = var.lifecycle_hooks
+  name                    = "ECS-Cluster"
+  on_demand_base_capacity = 1
+  protect_from_scale_in   = var.protect_from_scale_in
+  sg_ids                  = distinct(concat(var.security_group_ids, [aws_security_group.ecs_nodes.id]))
+  spot                    = var.spot == true ? 0 : 100
+  subnets_ids             = data.terraform_remote_state.VPC.outputs.subnet_ids
+  target_capacity         = var.target_capacity
+  trusted_cidr_blocks     = data.terraform_remote_state.VPC.outputs.public_subnets_cidr_blocks
+  user_data               = var.user_data == "" ? [] : [var.user_data]
+  vpc_id                  = data.terraform_remote_state.VPC.outputs.vpc_id
+
+  tags = {
+    Name   = "ECS Cluster",
+    Module = "ECS Cluster"
+  }
+}
