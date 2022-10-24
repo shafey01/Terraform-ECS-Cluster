@@ -1,15 +1,13 @@
 # Terraform-ECS-Cluster
 
-## There are three Directories,
-### 1- Setups for intial config the Backend.
-### 2- VPC for VPC resourses.
-### 3- ECS cluster.
+## There are two Directories,
+### 1- VPC for VPC resourses.
+### 2- ECS cluster.
 
 ```
 git clone from this repo.
-Dir. setups:
-in backend.tf file configure your backend backet and aws credentials.
-in main.tf file configure your resourses, VPC, ECS etc..
+in both VPC and ECS directories configure your backend backet in backend.tf file 
+in ECS/remote_state.tf configure your remote state backet for VPC to use it as data source.
 ---------------------------------------------------------------------
 terraform init
 terraform plan
