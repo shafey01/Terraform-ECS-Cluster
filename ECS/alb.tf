@@ -15,7 +15,7 @@ resource "aws_alb_target_group" "ECS-tg" {
   name     = "ECS-tg"
   port     = 80
   protocol = "HTTP"
-  target_type = "ip"
+  target_type = "instance"
   vpc_id   = data.terraform_remote_state.VPC.outputs.vpc_id
 }
 
